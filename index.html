@@ -175,15 +175,46 @@ function saveNew(){const who=$('#n_who').value.trim(),amt=num($('#n_amt').value)
  S.items.push(it);save();closeModal();toast('تزاد ✅');UI.tab=it.kind;render()}
 function detail(it){const rest=itemRest(it),multi=it.sched.length>1;
  modal(`<button class="x2" onclick="closeModal()">✕</button><h2>${esc(it.who)}</h2>
- <div class="muted" style="margin-bottom:8px">${it.kind==='in'?'📥 ليا عندو':'📤 عليا نخلص'} · ${esc(it.type)}${it.note?' · '+esc(it.note):''}</div>
+ <div class="row" style="border:0;padding:0 0 8px"><span class="muted">${it.kind==='in'?'📥 ليا عندو':'📤 عليا نخلص'} · ${esc(it.type)}${it.note?' · '+esc(it.note):''}</span><button class="btn sm ghost" onclick="editItem('${it.id}')">✏️ عدّل</button></div>
  <div class="card"><div class="row"><span>المجموع</span><b>${money(itemTotal(it))}</b></div><div class="row"><span>تخلص</span><b class="pos">${money(itemPaid(it))}</b></div><div class="row"><span>الباقي</span><b class="${rest?'neg':'pos'}">${money(rest)}</b></div></div>
  <div class="sec">${multi?'📆 الأقساط':'📆 الأجل'}</div>
  ${it.sched.map((r,i)=>{const rr=rowRest(r),d=daysUntil(r.due),paid=rr<=0.009;
   return `<div class="card"><div class="row" style="border:0;padding-bottom:4px"><b>${multi?'قسط '+(i+1)+'/'+it.sched.length:'المبلغ'} — ${money(r.amount)}</b><span class="${paid?'pos':d<0?'neg':d<=2?'amb':'muted'}">${paid?'✅ خالص '+fd(r.paidDate):fd(r.due)+' · '+whenTxt(d)}</span></div>
   ${!paid&&num(r.paidAmt)?`<div class="muted">تخلص منو ${fmtN(r.paidAmt)} · باقي ${fmtN(rr)}</div>`:''}
-  <div class="row" style="border:0;padding-bottom:0;justify-content:flex-start;gap:8px">${paid?`<button class="btn sm ghost" onclick="unpayRow('${it.id}','${r.id}')">رجعها</button>`:`<button class="btn sm dark" onclick="payRow('${it.id}','${r.id}',1)">✔️ ${it.kind==='in'?'تقبضت الكل':'خلصت الكل'}</button><button class="btn sm ghost" onclick="payRow('${it.id}','${r.id}',0)">دفعة جزئية</button>`}</div></div>`}).join('')}
+  <div class="row" style="border:0;padding-bottom:0;justify-content:flex-start;gap:8px;flex-wrap:wrap">${paid?`<button class="btn sm ghost" onclick="unpayRow('${it.id}','${r.id}')">رجعها</button>`:`<button class="btn sm dark" onclick="payRow('${it.id}','${r.id}',1)">✔️ ${it.kind==='in'?'تقبضت الكل':'خلصت الكل'}</button><button class="btn sm ghost" onclick="payRow('${it.id}','${r.id}',0)">دفعة جزئية</button>`}<button class="btn sm ghost" onclick="editRow('${it.id}','${r.id}')">✏️ عدّل</button><button class="btn sm red" onclick="delRow('${it.id}','${r.id}')">🗑️</button></div></div>`}).join('')}
  <button class="btn ghost" onclick="addRow('${it.id}')">＋ زيد أجل / قسط</button>
  <button class="btn red" onclick="delItem('${it.id}')">مسح هاد الحاجة</button>`)}
+function editItem(id){const it=S.items.find(x=>x.id===id);if(!it)return;
+ modal(`<button class="x2" onclick="detail(S.items.find(x=>x.id==='${id}'))">✕</button><h2>تعديل</h2>
+ <div class="seg" id="n_kind">${[['in','📥 ليا عند شي واحد'],['out','📤 عليا نخلص']].map(x=>`<button type="button" data-k="${x[0]}" class="${it.kind===x[0]?'on':''}" onclick="pickKind('${x[0]}')">${x[1]}</button>`).join('')}</div>
+ <div class="grid2"><div><label>شكون / شنو</label><input id="e_who" value="${esc(it.who)}"></div><div><label>النوع</label><select id="e_type">${TYPES.map(t=>`<option ${t===it.type?'selected':''}>${t}</option>`).join('')}</select></div></div>
+ <label>ملاحظة</label><input id="e_note" value="${esc(it.note||'')}">
+ <div class="sec">📆 الأقساط</div><div class="card"><div class="muted">باش تبدل المبالغ والتواريخ، ضغط ✏️ على القسط. وتقدر تعاود تحسب الجدول كامل من هنا:</div>
+ <div class="grid2"><div><label>المبلغ الكامل (DH)</label><input id="e_amt" inputmode="decimal" value="${r2(itemTotal(it))}"></div><div><label>عدد الأقساط</label><input id="e_count" inputmode="numeric" value="${it.sched.length}"></div></div>
+ <label>أول أجل</label><input type="date" id="e_due" value="${it.sched[0]?it.sched[0].due:todayIso()}">
+ <button class="btn ghost" onclick="rebuild('${id}')">🔄 عاود حسب الجدول</button>
+ <div class="muted" style="margin-top:6px">⚠️ هادشي كيمسح الأقساط القدام ويصاوب جداد. لي تخلص كيتمسح حتى هو.</div></div>
+ <button class="btn dark" onclick="saveEdit('${id}')">حفظ</button>`);UI.nk=it.kind}
+function saveEdit(id){const it=S.items.find(x=>x.id===id);if(!it)return;const w=$('#e_who').value.trim();if(!w)return alert('كتب شكون');
+ it.who=w;it.type=$('#e_type').value;it.note=$('#e_note').value.trim();it.kind=UI.nk||it.kind;save();detail(it);render();toast('تحفظ ✅')}
+function rebuild(id){const it=S.items.find(x=>x.id===id),amt=num($('#e_amt').value),c=Math.max(1,Math.round(num($('#e_count').value))||1),due=$('#e_due').value;
+ if(!amt||!due)return alert('عمر المبلغ والتاريخ');if(!confirm('غادي نعاودو نصاوبو '+c+' ديال الأقساط. نكملو؟'))return;
+ const m=r2(amt/c),s0=pd(due);it.sched=[];
+ for(let i=0;i<c;i++){const d=new Date(s0.getFullYear(),s0.getMonth()+i,s0.getDate());it.sched.push({id:uid()+i,due:iso(d),amount:i===c-1?r2(amt-m*(c-1)):m,paidAmt:0,paidDate:''})}
+ save();detail(it);render();toast('تصاوب الجدول ✅')}
+function editRow(itId,rId){const it=S.items.find(x=>x.id===itId),r=it&&it.sched.find(x=>x.id===rId);if(!r)return;const i=it.sched.indexOf(r);
+ modal(`<button class="x2" onclick="detail(S.items.find(x=>x.id==='${itId}'))">✕</button><h2>تعديل القسط ${i+1}/${it.sched.length}</h2>
+ <div class="grid2"><div><label>المبلغ (DH)</label><input id="r_amt" inputmode="decimal" value="${r.amount}"></div><div><label>تاريخ الأجل</label><input type="date" id="r_due" value="${r.due}"></div></div>
+ <label>تخلص منو (DH)</label><input id="r_paid" inputmode="decimal" value="${num(r.paidAmt)||''}" placeholder="0">
+ <div class="muted" style="margin-top:6px">حط المبلغ لي تخلص من هاد القسط. إلا حطيتي نفس المبلغ الكامل، كيولي خالص ✅</div>
+ <button class="btn dark" onclick="saveRow('${itId}','${rId}')">حفظ</button>
+ <button class="btn red" onclick="delRow('${itId}','${rId}')">مسح هاد القسط</button>`)}
+function saveRow(itId,rId){const it=S.items.find(x=>x.id===itId),r=it.sched.find(x=>x.id===rId),a=num($('#r_amt').value),d=$('#r_due').value,p=num($('#r_paid').value);
+ if(!a)return alert('كتب المبلغ');if(!d)return alert('ختار التاريخ');
+ r.amount=a;r.due=d;r.paidAmt=Math.min(p,a);r.paidDate=r.paidAmt>=a?(r.paidDate||todayIso()):'';
+ it.sched.sort((x,y)=>x.due.localeCompare(y.due));save();detail(it);render();toast('تحفظ ✅')}
+function delRow(itId,rId){const it=S.items.find(x=>x.id===itId);if(!it)return;if(it.sched.length<2)return alert('ما يمكنش تمسح الوحيد. مسح الحاجة كاملة إلا بغيتي.');
+ if(!confirm('نمسحو هاد القسط؟'))return;it.sched=it.sched.filter(x=>x.id!==rId);save();detail(it);render();toast('تمسح')}
 function addRow(id){const it=S.items.find(x=>x.id===id);const a=prompt('المبلغ ديال القسط الجديد؟');if(a===null)return;const d=prompt('تاريخ الأجل؟ (2026-11-15)',todayIso());if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d))return alert('التاريخ ماشي صحيح');
  it.sched.push({id:uid(),due:d,amount:num(a),paidAmt:0,paidDate:''});it.sched.sort((x,y)=>x.due.localeCompare(y.due));save();detail(it);render();toast('تزاد ✅')}
 function delItem(id){if(!confirm('نمسحو هاد الحاجة كاملة؟'))return;S.items=S.items.filter(x=>x.id!==id);save();closeModal();render();toast('تمسح')}
